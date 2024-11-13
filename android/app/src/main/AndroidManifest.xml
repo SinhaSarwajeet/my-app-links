@@ -28,7 +28,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="www.example.com" android:pathPrefix="/course" />
+                <data android:scheme="https" android:host="www.sinhasarwajeet.github.io/my-app-links/" android:pathPrefix="/course" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
