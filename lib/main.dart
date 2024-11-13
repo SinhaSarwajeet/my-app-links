@@ -1,122 +1,87 @@
-// lib/main.dart
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:app_links/app_links.dart';
+import 'package:example/splash.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get_navigation/src/root/get_material_app.dart';
+import 'package:url_protocol/url_protocol.dart';
+
+///////////////////////////////////////////////////////////////////////////////
+/// Please make sure to follow the setup instructions below
+///
+/// Please take a look at:
+/// - example/android/app/main/AndroidManifest.xml for Android.
+///
+/// - example/ios/Runner/Runner.entitlements for Universal Link sample.
+/// - example/ios/Runner/Info.plist for Custom URL scheme sample.
+///
+/// You can launch an intent on an Android Emulator like this:
+///    adb shell am start -a android.intent.action.VIEW \
+///     -d "sample://open.my.app/#/book/hello-world"
+///
+///
+/// On windows & macOS:
+///   The simplest way to test it is by
+///   opening your browser and type: sample://foo/#/book/hello-world2
+///
+/// On windows:
+/// Outside of a browser, in a email for example, you can use:
+/// https://example.com/#/book/hello-world2
+///////////////////////////////////////////////////////////////////////////////
+
+const kWindowsScheme = 'sample';
 
 void main() {
-  runApp(MyApp());
+  // Register our protocol only on Windows platform
+  // registerProtocolHandler(kWindowsScheme);
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
+  const MyApp({Key? key}) : super(key: key);
+
   @override
-  _MyAppState createState() => _MyAppState();
+  State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
+  final navigatorKey = GlobalKey<NavigatorState>();
   late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
     super.initState();
-    _appLinks = AppLinks();
-    _handleDeepLink();
   }
 
-  void _handleDeepLink() async {
-    final initialLink = await _appLinks.getInitialLink();
-    if (initialLink != null) {
-      _navigateFromLink(initialLink);
-    }
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
 
-    _appLinks.uriLinkStream.listen((Uri? uri) {
-      if (uri != null) {
-        _navigateFromLink(uri);
-      }
+    super.dispose();
+  }
+
+  Future<void> initDeepLinks() async {
+    _appLinks = AppLinks();
+
+    // Handle links
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      debugPrint('onAppLink: $uri');
+      openAppLink(uri);
     });
   }
 
-  void _navigateFromLink(Uri uri) {
-    if (uri.pathSegments.contains('course')) {
-      final name = uri.queryParameters['name'] ?? 'Unknown';
-      final description = uri.queryParameters['description'] ?? 'No description';
-      final duration = uri.queryParameters['duration'] ?? '0';
-
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CourseScreen(
-            course: Course(
-              name: name,
-              description: description,
-              duration: duration,
-            ),
-          ),
-        ),
-      );
-    }
+  void openAppLink(Uri uri) {
+    navigatorKey.currentState?.pushNamed(uri.fragment);
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Deep Link Demo',
-      home: HomeScreen(),
+    return GetMaterialApp(
+      navigatorKey: navigatorKey,
+      home: SplashScreen(),
     );
   }
-}
-
-class HomeScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Home'),
-      ),
-      body: Center(
-        child: Text('Welcome to the Home Screen! Navigate using deep links.'),
-      ),
-    );
-  }
-}
-
-class CourseScreen extends StatelessWidget {
-  final Course course;
-
-  CourseScreen({required this.course});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(course.name),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Description: ${course.description}',
-              style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Duration: ${course.duration}',
-              style: TextStyle(fontSize: 16),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class Course {
-  final String name;
-  final String description;
-  final String duration;
-
-  Course({
-    required this.name,
-    required this.description,
-    required this.duration,
-  });
 }
